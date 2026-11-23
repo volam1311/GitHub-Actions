@@ -1,0 +1,4 @@
+# Written by scripts/build_info.py during the deploy workflow — never commit it
+site/build-info.json
+hello-info.json
+__pycache__/

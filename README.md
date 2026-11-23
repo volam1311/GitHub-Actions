@@ -1,63 +1,34 @@
-# GitHub Actions — 4-Day Intensive
+# GitHub Actions — Short Course
 
-Senior track. Assumes you're fluent in Python and R. There's no intro to CI and no walkthrough of YAML as a language.
+Learn GitHub Actions by writing the workflows that publish a real website.
 
-**Cadence:** 1 week × 4 days. Budget about 1.5 h for the lecture and 4–5 h for the lab each day.
+| File / folder | What it is | Time |
+|---|---|---|
+| [`notes.md`](notes.md) | Plain-language explanations of how GitHub Actions works | ~1 hour |
+| [`activities.md`](activities.md) | A step-by-step guide: **you** write the workflows that check, build and deploy `site/` to GitHub Pages | ~4 hours |
+| [`site/`](site/) | The website: an interactive page that explains the GitHub Actions flow (already built) | — |
+| [`scripts/`](scripts/) | Helpers your workflows call: `check_site.py` (link checker) and `build_info.py` (writes run info for the page) | — |
 
-**How to use each day:**
+## How to use it
 
-1. Read the lecture in `notes/day-0X-*.md`.
-2. Do the lab in `activities/day-0X-*.md`. Each lab has short **drills** (Part A) followed by a **mini-challenge** (Part B). Day 4's challenge is the capstone, which builds on everything from Days 1–3.
+1. Read [`notes.md`](notes.md).
+2. Follow [`activities.md`](activities.md), Steps 0–10. Each step tells you what to write, gives hints, shows what you should see, and has a hidden solution in case you get stuck.
+3. When you finish, your live page at `https://<user>.github.io/<repo>/` shows **"Deployed by run #…"**, written there by the workflow you built.
 
-## Repository layout
+## Preview the site locally
 
-```text
-.
-├── README.md                                   ← this file (syllabus + index)
-├── notes/                                      lectures: read these
-│   ├── day-01-execution-model-and-trust-boundary.md
-│   ├── day-02-production-ci-and-release.md
-│   ├── day-03-orchestration-at-scale.md
-│   └── day-04-enterprise-control-plane.md
-└── activities/                                 labs: do these
-    ├── day-01-execution-and-trust-lab.md
-    ├── day-02-ci-and-release-lab.md
-    ├── day-03-scale-lab.md
-    └── day-04-capstone.md
+```bash
+python3 -m http.server 8000 -d site      # then open http://localhost:8000
+python3 scripts/check_site.py site       # run the same check your CI will run
 ```
 
----
+## What you'll learn
 
-## Syllabus
-
-| Day | Read (`notes/`) | Do (`activities/`) |
-|---|---|---|
-| 1 | [Execution model, composition, and the trust boundary](notes/day-01-execution-model-and-trust-boundary.md) | [Drills + **safe-by-construction CI library**](activities/day-01-execution-and-trust-lab.md) |
-| 2 | [Production CI for Python & R, and release engineering](notes/day-02-production-ci-and-release.md) | [Drills + **dual-language release train**](activities/day-02-ci-and-release-lab.md) |
-| 3 | [Orchestration at scale: runners, monorepos, merge queues, capacity](notes/day-03-orchestration-at-scale.md) | [Drills + **monorepo CI control plane**](activities/day-03-scale-lab.md) |
-| 4 | [Enterprise control plane, supply-chain defense, and running Actions as a product](notes/day-04-enterprise-control-plane.md) | [Drills + **Capstone: Actions platform for a regulated org**](activities/day-04-capstone.md) |
-
-**What each day covers:**
-
-- **Day 1:** event ingress and definition refs, the job DAG and skip contagion, concurrency, expression injection, permissions, the three action runtimes, pinning, cache vs artifact, secrets and OIDC, threat modeling, and library API design.
-- **Day 2:** lockfile-frozen Python and R CI, services, matrix engineering, honest change detection, flakes, the gate job, build-once promotion, trusted publishing, provenance verification, promotion as a state machine, and rollback.
-- **Day 3:** runner isolation and ARC, affected-target computation, required-check stability, merge queues, queueing math, cost attribution, and budgets.
-- **Day 4:** allow-lists, org rulesets and required workflows, choosing an identity, the platform API, cache poisoning, attestation gates, incident runbooks, SLOs, maturity, and designing for audit.
-
----
-
-## Assessment standard (every challenge)
-
-| Dimension | Pass condition |
-|---|---|
-| Correctness | Graphs, gates, and promotions can't be bypassed by a crafted event |
-| Security | Least-privilege tokens, pinned SHAs, no untrusted code on privileged triggers |
-| Operability | Stable check names, observability hooks, failure isolation |
-| Cost / latency | Explicit budget; matrix and cache choices justified |
-| Transfer | Another senior engineer can adopt the workflows without a walkthrough |
-
----
-
-## Start here
-
-Open [notes/day-01-execution-model-and-trust-boundary.md](notes/day-01-execution-model-and-trust-boundary.md), then complete [activities/day-01-execution-and-trust-lab.md](activities/day-01-execution-and-trust-lab.md).
+- How workflows, jobs, steps, runners and actions fit together
+- Triggers, `paths:` filters, and manual runs
+- Job dependencies (`needs:`), passing files with artifacts, and job permissions
+- Reusable workflows, matrices, and a stable `gate` check
+- Concurrency that never cancels a deploy
+- Script injection, and how `env:` prevents it
+- Deploying to GitHub Pages through a protected environment with OIDC
+- Pinning actions to SHAs, Dependabot, and branch rulesets

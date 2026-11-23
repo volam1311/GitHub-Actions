@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>How GitHub Actions Works</title>
+  <meta name="description" content="An interactive walkthrough of the GitHub Actions flow, deployed to GitHub Pages by a workflow.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#journey">Skip to content</a>
+
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Interactive walkthrough</p>
+      <h1>How GitHub Actions works</h1>
+      <p class="lede">Follow one push from the moment it lands on GitHub to the moment this page went live. Click each stage to see what happens, plus the YAML that controls it.</p>
+
+      <div class="build" id="build" aria-live="polite">
+        <span class="build-dot" id="build-dot" aria-hidden="true"></span>
+        <span id="build-summary">Checking how this page was built…</span>
+      </div>
+    </div>
+  </header>
+
+  <nav class="toc wrap" aria-label="Sections">
+    <a href="#journey">1 · The journey of a run</a>
+    <a href="#graph">2 · Jobs and how they connect</a>
+    <a href="#pages">3 · How this page was deployed</a>
+    <a href="#glossary">4 · Glossary</a>
+  </nav>
+
+  <main class="wrap">
+
+    <!-- ============ 1. JOURNEY ============ -->
+    <section id="journey" class="section">
+      <h2><span class="num">1</span> The journey of a workflow run</h2>
+      <p class="section-intro">Every workflow run goes through the same nine stages. Pick a stage, or use the ← → arrow keys.</p>
+
+      <div class="stepper" role="tablist" aria-label="Workflow run stages">
+        <button class="stage-btn" role="tab" data-target="stage-event"><span class="stage-num">1</span><span class="stage-name">Event</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-workflow"><span class="stage-num">2</span><span class="stage-name">Workflow file</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-queue"><span class="stage-num">3</span><span class="stage-name">Run queued</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-jobs"><span class="stage-num">4</span><span class="stage-name">Jobs</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-runner"><span class="stage-num">5</span><span class="stage-name">Runner</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-steps"><span class="stage-num">6</span><span class="stage-name">Steps</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-artifacts"><span class="stage-num">7</span><span class="stage-name">Artifacts</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-deploy"><span class="stage-num">8</span><span class="stage-name">Environment</span></button>
+        <button class="stage-btn" role="tab" data-target="stage-result"><span class="stage-num">9</span><span class="stage-name">Result</span></button>
+      </div>
+
+      <div class="panels">
+        <article class="stage-panel" id="stage-event" role="tabpanel">
+          <h3>1 · An event happens</h3>
+          <p>Every run starts with an <strong>event</strong>: something that happened in your repository. You might have pushed code, opened a pull request, clicked <em>Run workflow</em>, or a scheduled timer went off.</p>
+          <div class="cols">
+            <pre><code>on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:   # manual button</code></pre>
+            <ul class="facts">
+              <li><strong>push</strong>: code landed on a branch</li>
+              <li><strong>pull_request</strong>: a PR was opened or updated</li>
+              <li><strong>workflow_dispatch</strong>: someone clicked a button</li>
+              <li><strong>schedule</strong>: a cron timer (in UTC)</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> filters like <code>branches:</code> and <code>paths:</code> decide whether this event should start the workflow at all.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-workflow" role="tabpanel">
+          <h3>2 · GitHub finds matching workflow files</h3>
+          <p>GitHub looks in <code>.github/workflows/</code> for YAML files whose <code>on:</code> section matches the event. Every match becomes a separate <strong>workflow run</strong>.</p>
+          <div class="cols">
+            <pre><code>.github/
+└── workflows/
+    ├── check.yml    # on: pull_request
+    └── deploy.yml   # on: push to main</code></pre>
+            <ul class="facts">
+              <li>One file = one workflow</li>
+              <li>Many workflows can run for the same event</li>
+              <li>For a <code>push</code>, the file in <em>that commit</em> is used</li>
+              <li>For a <code>pull_request</code>, the file <em>in the PR</em> is used</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> because a PR can change the workflow file, GitHub gives PRs from forks <em>no secrets</em> and a <em>read-only</em> token.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-queue" role="tabpanel">
+          <h3>3 · The run is queued</h3>
+          <p>GitHub creates the run and checks <strong>concurrency</strong>: is another run with the same group name already going? If so, the new run waits, or the old one is cancelled.</p>
+          <div class="cols">
+            <pre><code>concurrency:
+  group: pages
+  cancel-in-progress: false</code></pre>
+            <ul class="facts">
+              <li>Same group = never at the same time</li>
+              <li><code>cancel-in-progress: true</code> cancels the old run</li>
+              <li><code>false</code> makes the new run wait</li>
+              <li>Never cancel a deploy halfway through</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> cancelling old runs on pull requests saves minutes, because only the newest push matters.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-jobs" role="tabpanel">
+          <h3>4 · Jobs are scheduled</h3>
+          <p>A workflow contains one or more <strong>jobs</strong>. Jobs run <em>in parallel</em> unless one <code>needs</code> another. An <code>if:</code> can skip a job.</p>
+          <div class="cols">
+            <pre><code>jobs:
+  check:   ...
+  build:
+    needs: check
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'</code></pre>
+            <ul class="facts">
+              <li><code>needs</code> = wait for that job to succeed first</li>
+              <li>If a needed job fails or is skipped, this job is skipped too</li>
+              <li><code>if: ${{ !cancelled() }}</code> runs a job no matter what happened before</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> see section 2 below for a picture of how jobs connect.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-runner" role="tabpanel">
+          <h3>5 · Each job gets a fresh runner</h3>
+          <p>A <strong>runner</strong> is the machine that runs a job. GitHub-hosted runners are brand-new virtual machines that are thrown away after the job. Every job starts with <em>nothing</em> on disk.</p>
+          <div class="cols">
+            <pre><code>runs-on: ubuntu-24.04
+permissions:
+  contents: read</code></pre>
+            <ul class="facts">
+              <li>Files <em>don't</em> carry over between jobs</li>
+              <li>The job gets a <code>GITHUB_TOKEN</code> for talking to GitHub</li>
+              <li><code>permissions:</code> decides what that token may do</li>
+              <li>Start with <code>permissions: {}</code> and add only what's needed</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> that's why most jobs start with <code>actions/checkout</code>: the code isn't there until you fetch it.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-steps" role="tabpanel">
+          <h3>6 · Steps run in order</h3>
+          <p>Inside a job, <strong>steps</strong> run one after another on the same machine, so they share files. A step either runs a shell command (<code>run:</code>) or uses a ready-made <strong>action</strong> (<code>uses:</code>).</p>
+          <div class="cols">
+            <pre><code>steps:
+  - uses: actions/checkout@v4
+  - uses: actions/setup-python@v5
+    with:
+      python-version: "3.12"
+  - run: python scripts/check_site.py site</code></pre>
+            <ul class="facts">
+              <li><code>${{ }}</code> is filled in <em>before</em> the shell runs</li>
+              <li>Never put untrusted text (PR titles, commit messages) straight into <code>run:</code></li>
+              <li>Pass it through <code>env:</code> instead</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> an action runs inside your job with your token. Pin actions to a commit SHA so nobody can swap their code.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-artifacts" role="tabpanel">
+          <h3>7 · Jobs hand off work with artifacts</h3>
+          <p>Jobs don't share a disk, so one job <strong>uploads</strong> files as an artifact and a later job <strong>downloads</strong> them. Small values can be passed as job <strong>outputs</strong>.</p>
+          <div class="cols">
+            <pre><code>- uses: actions/upload-pages-artifact@v3
+  with:
+    path: site/</code></pre>
+            <ul class="facts">
+              <li><strong>Artifact</strong>: files passed between jobs</li>
+              <li><strong>Cache</strong>: speeds up installs, and may be empty</li>
+              <li><strong>Output</strong>: a short text value (<code>'true'</code>, not <code>true</code>)</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> build once, then deploy that exact artifact. Don't rebuild for each environment.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-deploy" role="tabpanel">
+          <h3>8 · Environments guard deployments</h3>
+          <p>A job that names an <strong>environment</strong> must pass that environment's rules before it starts. Rules can be required reviewers, a wait timer, or "only from <code>main</code>". Environment secrets are only unlocked after that.</p>
+          <div class="cols">
+            <pre><code>deploy:
+  environment:
+    name: github-pages
+    url: ${{ steps.deployment.outputs.page_url }}
+  permissions:
+    pages: write
+    id-token: write</code></pre>
+            <ul class="facts">
+              <li><code>github-pages</code> is created for you when you turn on Pages</li>
+              <li>By default it only allows deploys from the default branch</li>
+              <li><code>id-token: write</code> lets the job prove who it is (OIDC). No password is stored</li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> the URL you set appears on the run page and under <em>Deployments</em> in the repo.</p>
+        </article>
+
+        <article class="stage-panel" id="stage-result" role="tabpanel">
+          <h3>9 · The result shows up everywhere</h3>
+          <p>Every job reports a <strong>check</strong>: ✅, ❌ or skipped. These appear on the commit, on the pull request, and in the Actions tab with full logs.</p>
+          <div class="cols">
+            <pre><code>Settings → Rules → Rulesets
+  Require status checks:
+    ✔ check / gate</code></pre>
+            <ul class="facts">
+              <li>Branch protection can <em>require</em> a check before merging</li>
+              <li>Require one stable "gate" job, not every matrix job</li>
+              <li>Failed? Read the log, fix, push again, or click <em>Re-run</em></li>
+            </ul>
+          </div>
+          <p class="tip"><strong>Good to know:</strong> the banner at the top of this page is the result of a real run. Click it to see that run's log.</p>
+        </article>
+      </div>
+
+      <div class="pager" aria-hidden="true">
+        <button class="pager-btn" id="prev" type="button">← Previous</button>
+        <button class="pager-btn" id="next" type="button">Next →</button>
+      </div>
+    </section>
+
+    <!-- ============ 2. GRAPH ============ -->
+    <section id="graph" class="section">
+      <h2><span class="num">2</span> Jobs and how they connect</h2>
+      <p class="section-intro">This is the shape of a typical CI workflow. Jobs in the same column run at the same time, and each arrow means <code>needs:</code>.</p>
+
+      <figure class="graph">
+        <svg viewBox="0 0 760 250" role="img" aria-labelledby="graph-title graph-desc">
+          <title id="graph-title">Job dependency graph</title>
+          <desc id="graph-desc">Lint and three test jobs run in parallel. A gate job needs all of them. A deploy job needs the gate and only runs on main.</desc>
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-head"/>
+            </marker>
+          </defs>
+          <g class="edges">
+            <path d="M170,40 C230,40 240,125 300,125" marker-end="url(#arrow)"/>
+            <path d="M170,95 C230,95 240,125 300,125" marker-end="url(#arrow)"/>
+            <path d="M170,155 C230,155 240,125 300,125" marker-end="url(#arrow)"/>
+            <path d="M170,210 C230,210 240,125 300,125" marker-end="url(#arrow)"/>
+            <path d="M440,125 L520,125" marker-end="url(#arrow)"/>
+          </g>
+          <g class="node"><rect x="20" y="20" width="150" height="40" rx="8"/><text x="95" y="45">lint</text></g>
+          <g class="node matrix"><rect x="20" y="75" width="150" height="40" rx="8"/><text x="95" y="100">test (3.11)</text></g>
+          <g class="node matrix"><rect x="20" y="135" width="150" height="40" rx="8"/><text x="95" y="160">test (3.12)</text></g>
+          <g class="node matrix"><rect x="20" y="190" width="150" height="40" rx="8"/><text x="95" y="215">test (3.13)</text></g>
+          <g class="node gate"><rect x="300" y="100" width="140" height="50" rx="8"/><text x="370" y="122">gate</text><text x="370" y="140" class="small">if: !cancelled()</text></g>
+          <g class="node deploy"><rect x="520" y="100" width="220" height="50" rx="8"/><text x="630" y="122">deploy</text><text x="630" y="140" class="small">only on main</text></g>
+        </svg>
+        <figcaption>
+          <span class="legend matrix">Matrix jobs</span> are one job run with different values.
+          <span class="legend gate">The gate</span> is the single check that branch protection requires.
+          <span class="legend deploy">Deploy</span> only runs if everything before it passed.
+        </figcaption>
+      </figure>
+    </section>
+
+    <!-- ============ 3. PAGES ============ -->
+    <section id="pages" class="section">
+      <h2><span class="num">3</span> How this page was deployed</h2>
+      <p class="section-intro">This site is plain HTML in the <code>site/</code> folder. A workflow checks it, packages it, and publishes it to GitHub Pages.</p>
+
+      <ol class="pipeline">
+        <li class="pipe">
+          <span class="pipe-icon" aria-hidden="true">⬆</span>
+          <h3>Push to main</h3>
+          <p>You push a change. The <code>push</code> event matches <code>deploy.yml</code>.</p>
+        </li>
+        <li class="pipe">
+          <span class="pipe-icon" aria-hidden="true">✔</span>
+          <h3>check job</h3>
+          <p>Runs <code>scripts/check_site.py</code>, which fails on broken links or missing files.</p>
+        </li>
+        <li class="pipe">
+          <span class="pipe-icon" aria-hidden="true">📦</span>
+          <h3>build job</h3>
+          <p>Writes <code>build-info.json</code>, then <code>upload-pages-artifact</code> packages <code>site/</code>.</p>
+        </li>
+        <li class="pipe">
+          <span class="pipe-icon" aria-hidden="true">🚀</span>
+          <h3>deploy job</h3>
+          <p>Passes the <code>github-pages</code> environment, then <code>deploy-pages</code> publishes the artifact.</p>
+        </li>
+        <li class="pipe">
+          <span class="pipe-icon" aria-hidden="true">🌐</span>
+          <h3>Live</h3>
+          <p>GitHub serves the files at <code>https://&lt;user&gt;.github.io/&lt;repo&gt;/</code>.</p>
+        </li>
+      </ol>
+
+      <div class="card">
+        <h3>This copy of the page</h3>
+        <p id="build-note" class="muted">Loading build information…</p>
+        <dl class="info" id="build-table" hidden>
+          <dt>Workflow</dt><dd id="bi-workflow">–</dd>
+          <dt>Run</dt><dd><a id="bi-run" href="#pages">–</a></dd>
+          <dt>Triggered by</dt><dd id="bi-event">–</dd>
+          <dt>Actor</dt><dd id="bi-actor">–</dd>
+          <dt>Branch</dt><dd id="bi-ref">–</dd>
+          <dt>Commit</dt><dd><code id="bi-sha">–</code></dd>
+          <dt>Commit message</dt><dd id="bi-message">–</dd>
+          <dt>Built at</dt><dd id="bi-time">–</dd>
+        </dl>
+      </div>
+    </section>
+
+    <!-- ============ 4. GLOSSARY ============ -->
+    <section id="glossary" class="section">
+      <h2><span class="num">4</span> Glossary</h2>
+      <div class="glossary">
+        <div class="term"><h3>Workflow</h3><p>One YAML file in <code>.github/workflows/</code>. Describes when to run and what to do.</p></div>
+        <div class="term"><h3>Event</h3><p>What starts a workflow: push, pull request, schedule, manual button…</p></div>
+        <div class="term"><h3>Job</h3><p>A group of steps that runs on one runner. Jobs run in parallel by default.</p></div>
+        <div class="term"><h3>Step</h3><p>One command (<code>run:</code>) or one action (<code>uses:</code>). Steps run in order.</p></div>
+        <div class="term"><h3>Action</h3><p>A reusable, packaged step, like <code>actions/checkout</code>. Pin it to a SHA.</p></div>
+        <div class="term"><h3>Runner</h3><p>The machine that runs a job. GitHub-hosted runners are fresh for every job.</p></div>
+        <div class="term"><h3>Artifact</h3><p>Files uploaded by one job so a later job (or you) can download them.</p></div>
+        <div class="term"><h3>Cache</h3><p>Saved files that speed up installs. The job must still work without it.</p></div>
+        <div class="term"><h3>Secret</h3><p>An encrypted value, like an API key. Hidden in logs, but still handle it carefully.</p></div>
+        <div class="term"><h3>Environment</h3><p>A named deploy target with rules (reviewers, branches) and its own secrets.</p></div>
+        <div class="term"><h3>GITHUB_TOKEN</h3><p>An automatic token for each job. <code>permissions:</code> controls what it can do.</p></div>
+        <div class="term"><h3>OIDC</h3><p>Lets a job prove its identity to a service (like Pages or a cloud provider) without a stored password.</p></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <p>Built with plain HTML, CSS and JavaScript, and deployed by GitHub Actions to GitHub Pages.</p>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
