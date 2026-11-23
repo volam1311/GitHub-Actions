@@ -1,83 +1,48 @@
-# GitHub Actions — 4-Week Intensive Curriculum
+# GitHub Actions — 4-Day Intensive
 
-Senior-track. Assumes fluency in Python and R. No CI primers, no YAML-as-a-language walkthroughs.
+Senior track. Assumes you're fluent in Python and R. There's no intro to CI and no walkthrough of YAML as a language.
 
-**Cadence:** 3 days/week × 4 weeks.
+**Cadence:** 1 week × 4 days. Budget about 1.5 h for the lecture and 4–5 h for the lab each day.
 
-**How you use each day:**
+**How to use each day:**
 
-1. Read the lecture in `week-NN/notes/day-0X-*.md` — that file is the teaching content.
-2. Do the matching practice in `week-NN/activities/day-0X-*.md` — that file is the work you complete.
-3. Every day has both, Day 3 included. The Day 3 lecture covers design judgment rather than mechanism, and its activity is the **Weekly Challenge** — a full synthesis project.
+1. Read the lecture in `notes/day-0X-*.md`.
+2. Do the lab in `activities/day-0X-*.md`. Each lab has short **drills** (Part A) followed by a **mini-challenge** (Part B). Day 4's challenge is the capstone, which builds on everything from Days 1–3.
 
 ## Repository layout
 
-Each week is a self-contained folder with two working trees:
-
-| Path | Purpose |
-|---|---|
-| `week-NN/notes/` | Lecture content only. You read these. |
-| `week-NN/activities/` | Practice for that same day. You do these. |
-
 ```text
 .
-├── README.md                          ← this file (syllabus + index)
-├── week-01/
-│   ├── README.md
-│   ├── notes/
-│   │   ├── day-01-scheduler-and-workflow-graph.md
-│   │   ├── day-02-actions-reuse-and-trust.md
-│   │   └── day-03-designing-the-trust-boundary.md
-│   └── activities/
-│       ├── day-01-workflow-graph-drills.md
-│       ├── day-02-reuse-and-trust-drills.md
-│       └── day-03-challenge-reusable-workflow-library.md
-├── week-02/
-│   ├── notes/
-│   └── activities/
-├── week-03/
-│   ├── notes/
-│   └── activities/
-└── week-04/
-    ├── notes/
-    └── activities/
+├── README.md                                   ← this file (syllabus + index)
+├── notes/                                      lectures: read these
+│   ├── day-01-execution-model-and-trust-boundary.md
+│   ├── day-02-production-ci-and-release.md
+│   ├── day-03-orchestration-at-scale.md
+│   └── day-04-enterprise-control-plane.md
+└── activities/                                 labs: do these
+    ├── day-01-execution-and-trust-lab.md
+    ├── day-02-ci-and-release-lab.md
+    ├── day-03-scale-lab.md
+    └── day-04-capstone.md
 ```
 
 ---
 
 ## Syllabus
 
-### Week 1 — Execution Model, Composition, and the Trust Boundary
-
 | Day | Read (`notes/`) | Do (`activities/`) |
 |---|---|---|
-| 1 | Scheduler internals and the workflow graph | Graph, event, and permission drills |
-| 2 | Action types, reuse, and secret hygiene | Composition and pinning drills |
-| 3 | Designing the trust boundary and the library API | **Weekly Challenge:** policy-grade reusable workflow library |
+| 1 | [Execution model, composition, and the trust boundary](notes/day-01-execution-model-and-trust-boundary.md) | [Drills + **safe-by-construction CI library**](activities/day-01-execution-and-trust-lab.md) |
+| 2 | [Production CI for Python & R, and release engineering](notes/day-02-production-ci-and-release.md) | [Drills + **dual-language release train**](activities/day-02-ci-and-release-lab.md) |
+| 3 | [Orchestration at scale: runners, monorepos, merge queues, capacity](notes/day-03-orchestration-at-scale.md) | [Drills + **monorepo CI control plane**](activities/day-03-scale-lab.md) |
+| 4 | [Enterprise control plane, supply-chain defense, and running Actions as a product](notes/day-04-enterprise-control-plane.md) | [Drills + **Capstone: Actions platform for a regulated org**](activities/day-04-capstone.md) |
 
-### Week 2 — Production CI for Python & R, Matrices, and Release Engineering
+**What each day covers:**
 
-| Day | Read (`notes/`) | Do (`activities/`) |
-|---|---|---|
-| 1 | Language-native CI at production quality | Python/R CI drills |
-| 2 | Release, promote, deploy | Release-train drills |
-| 3 | Artifact integrity and promotion design | **Weekly Challenge:** release train for Python + R |
-
-### Week 3 — Orchestration at Scale: Runners, Monorepos, and Merge Control
-
-| Day | Read (`notes/`) | Do (`activities/`) |
-|---|---|---|
-| 1 | Self-hosted runners, scaling, and isolation | Runner topology drills |
-| 2 | Monorepos, required checks, and merge queues | Merge-queue drills |
-| 3 | Capacity planning and queue economics | **Weekly Challenge:** monorepo CI with merge queue and private runners |
-
-### Week 4 — Enterprise Control Plane, Supply Chain, and Operating Actions as a Product
-
-| Day | Read (`notes/`) | Do (`activities/`) |
-|---|---|---|
-| 1 | Org/enterprise governance and platform API | Governance drills |
-| 2 | Hardening, attestations, and failure engineering | Incident drills |
-| 3 | Operating Actions as an internal product | **Weekly Challenge:** Actions platform for a regulated org |
+- **Day 1:** event ingress and definition refs, the job DAG and skip contagion, concurrency, expression injection, permissions, the three action runtimes, pinning, cache vs artifact, secrets and OIDC, threat modeling, and library API design.
+- **Day 2:** lockfile-frozen Python and R CI, services, matrix engineering, honest change detection, flakes, the gate job, build-once promotion, trusted publishing, provenance verification, promotion as a state machine, and rollback.
+- **Day 3:** runner isolation and ARC, affected-target computation, required-check stability, merge queues, queueing math, cost attribution, and budgets.
+- **Day 4:** allow-lists, org rulesets and required workflows, choosing an identity, the platform API, cache poisoning, attestation gates, incident runbooks, SLOs, maturity, and designing for audit.
 
 ---
 
@@ -85,7 +50,7 @@ Each week is a self-contained folder with two working trees:
 
 | Dimension | Pass condition |
 |---|---|
-| Correctness | Graphs, gates, and promotions cannot be bypassed by a crafted event |
+| Correctness | Graphs, gates, and promotions can't be bypassed by a crafted event |
 | Security | Least-privilege tokens, pinned SHAs, no untrusted code on privileged triggers |
 | Operability | Stable check names, observability hooks, failure isolation |
 | Cost / latency | Explicit budget; matrix and cache choices justified |
@@ -95,4 +60,4 @@ Each week is a self-contained folder with two working trees:
 
 ## Start here
 
-Open [week-01/notes/day-01-scheduler-and-workflow-graph.md](week-01/notes/day-01-scheduler-and-workflow-graph.md), then complete [week-01/activities/day-01-workflow-graph-drills.md](week-01/activities/day-01-workflow-graph-drills.md).
+Open [notes/day-01-execution-model-and-trust-boundary.md](notes/day-01-execution-model-and-trust-boundary.md), then complete [activities/day-01-execution-and-trust-lab.md](activities/day-01-execution-and-trust-lab.md).
