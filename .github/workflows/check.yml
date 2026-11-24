@@ -1,15 +1,26 @@
 name: check
 on: 
     pull_request: 
+    workflow_call:
 permissions: {}
 jobs:
     test:
         runs-on: ubuntu-24.04
         permissions:
             contents: read
+        strategy:
+            fail-fast: false
+            matrix: 
+                python: ["3.10", "3.11", "3.12", "3.13"]
         steps:
         - uses: actions/checkout@v4
         - uses: actions/setup-python@v5
           with:
-            python-version: "3.12"
+            python-version: ${{matrix.python}}
         - run: python3 scripts/check_site.py
+    gate:
+        needs: test
+        if: ${{ !cancelled() }}
+        runs-on: ubuntu-24.04
+        steps:
+        - run: test "${{ needs.test.result }}" = "success"
