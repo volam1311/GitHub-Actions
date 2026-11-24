@@ -4,6 +4,9 @@ on:
         branches: [main]
     workflow_dispatch:
 permissions: {}
+concurrency:
+  group: pages
+  cancel-in-progress: false
 jobs:
     check:
         uses: ./.github/workflows/check.yml
