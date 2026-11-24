@@ -10,9 +10,14 @@ jobs:
             contents: read
         steps:
             - uses: actions/checkout@v4
+            - name: Greet the PR
+              env:
+                    COMMIT_TITLE: ${{ github.event.head_commit.title }}
+              run: python3 scripts/build_info.py site/build-info.json
             - uses: actions/upload-pages-artifact@v3
               with:
-               path: site/
+                path: site/
+        
     deploy:
         needs: build
         environment: 
