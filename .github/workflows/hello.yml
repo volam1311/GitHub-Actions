@@ -1,0 +1,13 @@
+name: hello
+on:
+  push:
+  workflow_dispatch:
+permissions: {}
+jobs:
+  hello:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+    - uses: actions/checkout@v4
+    - run: python3 scripts/build_info.py hello-info.json
